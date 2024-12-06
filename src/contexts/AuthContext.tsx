@@ -42,23 +42,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log('Iniciando processo de login para:', email);
+      console.log('Tentando fazer login com:', email);
       
-      // Tenta fazer login diretamente com Supabase auth
-      console.log('Tentando fazer login com Supabase auth...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) {
-        console.error('Erro ao fazer login:', error);
+        console.error('Erro de autenticação:', error);
         throw error;
       }
 
+      console.log('Login bem sucedido:', data);
       return { data, error: null };
     } catch (err) {
-      console.error('Erro completo:', err);
+      console.error('Erro no login:', err);
       return { data: null, error: err };
     }
   };
