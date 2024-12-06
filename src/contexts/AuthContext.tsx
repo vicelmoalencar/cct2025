@@ -43,93 +43,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       console.log('Iniciando processo de login para:', email);
-      console.log('URL do Supabase:', import.meta.env.VITE_SUPABASE_URL);
       
-      // Verifica se o email existe na tabela usuarios
-      console.log('Verificando usuário na tabela usuarios...');
-      const { data: usuarioData, error: usuarioError } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('email', email)
-        .single();
-
-      if (usuarioError) {
-        console.error('Erro ao verificar usuário na tabela usuarios:', usuarioError);
-        console.error('Código do erro:', usuarioError.code);
-        console.error('Mensagem do erro:', usuarioError.message);
-        if (usuarioError.code === 'PGRST116') {
-          throw new Error('Este email não está autorizado. Entre em contato com o administrador.');
-        }
-        throw new Error(`Erro ao verificar usuário: ${usuarioError.message}`);
-      }
-
-      console.log('Usuário encontrado:', usuarioData);
-
-      // Tenta fazer login
+      // Tenta fazer login diretamente com Supabase auth
       console.log('Tentando fazer login com Supabase auth...');
-      let { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      // Se o login falhar com credenciais inválidas, tenta criar o usuário
-      if (error?.message === 'Invalid login credentials') {
-        console.log('Usuário não existe no auth, tentando criar...');
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              name: usuarioData.nome,
-              role: 'user'
-            }
-          }
-        });
-
-        if (signUpError) {
-          console.error('Erro ao criar usuário:', signUpError);
-          throw signUpError;
-        }
-
-        console.log('Usuário criado com sucesso:', signUpData);
-        data = signUpData;
-        error = null;
-      } else if (error) {
+      if (error) {
         console.error('Erro ao fazer login:', error);
-        console.error('Código do erro:', error.status);
-        console.error('Mensagem do erro:', error.message);
         throw error;
       }
 
-      console.log('Login bem sucedido:', data);
-
-      // Atualiza os metadados do usuário se necessário
-      if (!data.user.user_metadata?.role) {
-        console.log('Atualizando metadados do usuário...');
-        const { error: updateError } = await supabase.auth.updateUser({
-          data: {
-            name: usuarioData.nome,
-            role: 'user'
-          }
-        });
-
-        if (updateError) {
-          console.error('Erro ao atualizar metadados:', updateError);
-        } else {
-          console.log('Metadados atualizados com sucesso');
-        }
-      }
-
       return { data, error: null };
-    } catch (error: any) {
-      console.error('Erro completo:', error);
-      return { 
-        data: null, 
-        error: {
-          message: error.message || 'Erro ao fazer login',
-          details: error
-        }
-      };
+    } catch (err) {
+      console.error('Erro completo:', err);
+      return { data: null, error: err };
     }
   };
 
