@@ -12,6 +12,7 @@ import { Heart, HeartOff } from 'lucide-react';
 export function Lessons() {
   const { moduleId, lessonId } = useParams();
   const { lessons, loading: lessonsLoading, error: lessonsError } = useLessons(moduleId);
+  const currentLesson = lessons?.find(lesson => lesson.id_bubble_aula === lessonId);
   const {
     isFavorite,
     toggleFavorite,
@@ -20,9 +21,7 @@ export function Lessons() {
     deleteComment,
     loading: interactionsLoading,
     error: interactionsError
-  } = useLessonInteractions(lessonId || '');
-
-  const currentLesson = lessons?.find(lesson => lesson.id_bubble_aula === lessonId);
+  } = useLessonInteractions(currentLesson?.id?.toString() || '');
 
   if (lessonsLoading) {
     return <div className="flex justify-center p-4"><Loading /></div>;
