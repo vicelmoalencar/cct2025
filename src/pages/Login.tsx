@@ -5,10 +5,10 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Alert } from '../components/ui/alert';
 import { Loading } from '../components/ui/loading';
+import { supabase } from '../lib/supabase';
 
 export function Login() {
   const navigate = useNavigate();
-  const { signIn, signUp } = useAuthContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -26,23 +26,37 @@ export function Login() {
 
     try {
       if (isSignUp) {
-        const { error, message } = await signUp(formData.email, formData.password);
+        const { data, error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+        });
+        
         if (error) throw error;
-        if (message) {
-          setSuccess(message);
-          setFormData({ email: '', password: '' });
-        }
+        setSuccess('Conta criada com sucesso! Verifique seu email.');
+        setFormData({ email: '', password: '' });
       } else {
-        const { error } = await signIn(formData.email, formData.password);
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+        
         if (error) throw error;
         navigate('/');
       }
-    } catch (err) {
-      console.error('Erro no formulário:', err);
-      setError(err instanceof Error ? err.message : 'Ocorreu um erro inesperado.');
+    } catch (err: any) {
+      console.error('Erro no login:', err);
+      setError(err.message || 'Ocorreu um erro inesperado.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   return (
@@ -50,67 +64,44 @@ export function Login() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            {isSignUp ? 'Criar Senha' : 'Entrar'}
+            {isSignUp ? 'Criar nova conta' : 'Entrar na sua conta'}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            {isSignUp ? (
-              'Digite seu email e crie uma senha'
-            ) : (
-              'Digite seu email e senha para entrar'
-            )}
-          </p>
         </div>
-
-        {loading && <Loading />}
-
-        {error && (
-          <Alert
-            type="error"
-            title="Erro"
-            message={error}
-          />
-        )}
-
-        {success && (
-          <Alert
-            type="success"
-            title="Sucesso!"
-            message={success}
-          />
-        )}
-
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <Alert variant="destructive">
+              <p>{error}</p>
+            </Alert>
+          )}
+          {success && (
+            <Alert>
+              <p>{success}</p>
+            </Alert>
+          )}
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="email" className="sr-only">
-                Email
-              </label>
               <Input
                 id="email"
                 name="email"
                 type="email"
                 autoComplete="email"
                 required
-                className="rounded-t-md"
                 placeholder="Email"
                 value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={handleChange}
+                className="mb-2"
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">
-                Senha
-              </label>
               <Input
                 id="password"
                 name="password"
                 type="password"
-                autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                autoComplete="current-password"
                 required
-                className="rounded-b-md"
                 placeholder="Senha"
                 value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                onChange={handleChange}
               />
             </div>
           </div>
@@ -121,25 +112,21 @@ export function Login() {
               className="w-full"
               disabled={loading}
             >
-              {isSignUp ? 'Criar senha' : 'Entrar'}
+              {loading ? <Loading /> : isSignUp ? 'Criar conta' : 'Entrar'}
             </Button>
           </div>
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setError(null);
-                setSuccess(null);
-                setFormData({ email: '', password: '' });
-              }}
-              className="text-sm text-indigo-600 hover:text-indigo-500"
-            >
-              {isSignUp ? 'Já tem senha? Entre aqui' : 'Primeiro acesso? Crie sua senha'}
-            </button>
-          </div>
         </form>
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-indigo-600 hover:text-indigo-500"
+          >
+            {isSignUp
+              ? 'Já tem uma conta? Entre aqui'
+              : 'Não tem uma conta? Crie aqui'}
+          </button>
+        </div>
       </div>
     </div>
   );

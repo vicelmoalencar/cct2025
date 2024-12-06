@@ -1,65 +1,92 @@
 import React, { useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { useLessons } from '../hooks/useLessons';
 import { VideoPlayer } from '../components/VideoPlayer';
-import { LessonSocial } from '../components/LessonSocial';
-import { Play, CheckCircle2 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { useLessons } from '../hooks/useLessons';
+import { Loading } from '../components/ui/loading';
+import { Alert } from '../components/ui/alert';
+import { Button } from '../components/ui/button';
+import { LessonComments } from '../components/LessonComments';
+import { useLessonInteractions } from '../hooks/useLessonInteractions';
+import { Heart, HeartOff } from 'lucide-react';
 
 export function Lessons() {
-  const { moduleId } = useParams();
-  const { lessons, currentLesson, setCurrentLesson, loading, error } = useLessons(moduleId);
-  const playerRef = useRef<HTMLDivElement>(null);
+  const { moduleId, lessonId } = useParams();
+  const { lessons, loading: lessonsLoading, error: lessonsError } = useLessons(moduleId);
+  const {
+    isFavorite,
+    toggleFavorite,
+    comments,
+    addComment,
+    deleteComment,
+    loading: interactionsLoading,
+    error: interactionsError
+  } = useLessonInteractions(lessonId || '');
 
-  useEffect(() => {
-    console.log('Current module ID:', moduleId);
-    console.log('All lessons:', lessons);
-    console.log('Current lesson:', currentLesson);
-  }, [moduleId, lessons, currentLesson]);
+  const currentLesson = lessons?.find(lesson => lesson.id_bubble_aula === lessonId);
 
-  const handleLessonClick = (lesson: any) => {
-    setCurrentLesson(lesson);
-    // Rola suavemente até o player
-    playerRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  if (lessonsLoading) {
+    return <div className="flex justify-center p-4"><Loading /></div>;
+  }
+
+  if (lessonsError) {
+    return (
+      <Alert variant="destructive">
+        <p>Erro ao carregar aula: {lessonsError}</p>
+      </Alert>
+    );
+  }
+
+  if (!currentLesson) {
+    return (
+      <Alert variant="destructive">
+        <p>Aula não encontrada</p>
+      </Alert>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Video Player Section */}
-        <div ref={playerRef} className="lg:col-span-2 space-y-4">
-          <VideoPlayer lesson={currentLesson} />
-          
-          {currentLesson && (
-            <>
-              <div className="space-y-2">
-                <h1 className="text-2xl font-bold">{currentLesson.descricao}</h1>
-                {currentLesson.duracao && (
-                  <p className="text-sm text-gray-500">
-                    Duração: {currentLesson.duracao} minutos
-                  </p>
-                )}
-              </div>
-              
-              {/* Social Features Section */}
-              <div className="mt-6 border-t pt-4">
-                <LessonSocial lessonId={currentLesson.id_bubble_aula} />
-              </div>
-            </>
-          )}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">{currentLesson.descricao}</h1>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleFavorite}
+              className={isFavorite ? 'text-red-500' : 'text-gray-500'}
+            >
+              {isFavorite ? <Heart className="w-5 h-5" /> : <HeartOff className="w-5 h-5" />}
+            </Button>
+          </div>
+
+          <div className="aspect-video">
+            <VideoPlayer lesson={currentLesson} />
+          </div>
+
+          <div className="mt-8">
+            <LessonComments
+              comments={comments}
+              onAddComment={addComment}
+              onDeleteComment={deleteComment}
+              loading={interactionsLoading}
+              error={interactionsError}
+            />
+          </div>
         </div>
 
         {/* Lessons List Section */}
         <div className="bg-white rounded-lg shadow-sm p-4">
           <h2 className="text-lg font-semibold mb-4">Aulas do Módulo</h2>
           
-          {loading ? (
+          {lessonsLoading ? (
             <div className="flex justify-center items-center h-32">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
             </div>
-          ) : error ? (
+          ) : lessonsError ? (
             <div className="text-red-500 text-center p-4">
-              Erro ao carregar aulas: {error.message}
+              Erro ao carregar aulas: {lessonsError}
             </div>
           ) : lessons.length === 0 ? (
             <div className="text-gray-500 text-center p-4">
@@ -114,3 +141,9 @@ export function Lessons() {
     </div>
   );
 }
+
+const handleLessonClick = (lesson: any) => {
+  // setCurrentLesson(lesson);
+  // Rola suavemente até o player
+  // playerRef.current?.scrollIntoView({ behavior: 'smooth' });
+};
