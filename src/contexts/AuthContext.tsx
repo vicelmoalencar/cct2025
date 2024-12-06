@@ -43,7 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       console.log('Iniciando processo de login para:', email);
-
+      console.log('URL do Supabase:', import.meta.env.VITE_SUPABASE_URL);
+      
       // Verifica se o email existe na tabela usuarios
       console.log('Verificando usuário na tabela usuarios...');
       const { data: usuarioData, error: usuarioError } = await supabase
